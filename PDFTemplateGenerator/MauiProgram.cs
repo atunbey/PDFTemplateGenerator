@@ -18,6 +18,7 @@ namespace PDFTemplateGenerator
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddSingleton<ExcelMergeService>();
             builder.Services.AddSingleton<WordMergeServiceNPOI>();
+            builder.Services.AddSingleton(new HttpClient());
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
