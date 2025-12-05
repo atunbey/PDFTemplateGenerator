@@ -6,8 +6,11 @@
 @inject PDFTemplateGenerator.Services.ExcelMergeService excelMerge;
 @inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
 
-@using Microsoft.Maui.ApplicationModel
-@using Microsoft.Maui.Storage
+@using Microsoft.Maui.ApplicationModel;
+@using Microsoft.Maui.Storage;
+@using System.Text.Json;
+@using System.Text.Json.Serialization
+@inject HttpClient Http;
 
 <h1>Hello, world!</h1>
 
@@ -41,7 +44,7 @@ Welcome to your new app.
 
 
 @code {
-
+    private CarObject carInventory = new CarObject(); 
     private void GenerateBuyersGuide()
     {
         var data = new Dictionary<string, string>
@@ -68,12 +71,14 @@ Welcome to your new app.
 
     private void GenerateVEL()
     {
-        
+
     }
 
 
     private string? _status;
     private string? _lastOutputPath;
+    private string _onlineCarDataUrl = "https://onlinedata.kushkurriculum.org/api/docs/czGVryH9XzdH5qBAXzD4ib/tables/AutomotiveHeaders/records";
+    private string _onlineCarDateUrlApiKey = "863a5652184fa2a988f217019a3ebf751f7d3fc7";
 
     private async Task FillPlaceholders()
     {
@@ -154,6 +159,24 @@ Welcome to your new app.
     {
         try
         {
+            var request = new HttpRequestMessage(HttpMethod.Get, _onlineCarDataUrl);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _onlineCarDateUrlApiKey);
+
+            var response = await Http.SendAsync(request);
+
+            var json = await response.Content.ReadAsStringAsync();
+            carInventory = JsonSerializer.Deserialize<CarObject>(json);
+        
+        }
+        catch (Exception ex)
+        {
+            //_status = "Error fetching car data: " + ex.Message;
+            //return;
+        }
+
+
+        try
+        {
             _status = "Working...";
             StateHasChanged();
 
@@ -214,5 +237,109 @@ Welcome to your new app.
         });
     }
 
+    public class CarObject
+    {
+        [JsonPropertyName("records")]
+        public List<CarList> records { get; set; }
+    }
 
+    public class CarList
+    {
+
+        [JsonPropertyName("id")]
+        public int id { get; set; }
+
+        [JsonPropertyName("fields")]
+        public Car Cars { get; set; }
+    }
+
+    public class Car
+    {
+        // public string? Make { get; set; }
+        // public string? Model { get; set; }
+        // public string Year { get; set; }
+        // public string? VIN { get; set; }
+        // public string? Trim { get; set; }
+        // public string? Stock_No { get; set; }
+
+
+        [JsonPropertyName("Stock_No")]
+        public string StockNo { get; set; }
+
+        [JsonPropertyName("Make")]
+        public string Make { get; set; }
+
+        [JsonPropertyName("Model")]
+        public string Model { get; set; }
+
+        [JsonPropertyName("Trim")]
+        public string Trim { get; set; }
+
+        [JsonPropertyName("Year")]
+        public string Year { get; set; }
+
+        [JsonPropertyName("Eng")]
+        public string Engine { get; set; }
+
+        [JsonPropertyName("Trans")]
+        public string Transmission { get; set; }
+
+        [JsonPropertyName("Color")]
+        public string Color { get; set; }
+
+        [JsonPropertyName("Mileage")]
+        public string Mileage { get; set; }
+
+        [JsonPropertyName("VIN")]
+        public string VIN { get; set; }
+
+        [JsonPropertyName("Options")]
+        public string Options { get; set; }
+
+        [JsonPropertyName("Warranty_Type")]
+        public string WarrantyType { get; set; }
+
+        [JsonPropertyName("Price")]
+        public string Price { get; set; }
+
+        [JsonPropertyName("EPACity")]
+        public string EPACity { get; set; }
+
+        [JsonPropertyName("EPAHighway")]
+        public string EPAHighway { get; set; }
+
+        [JsonPropertyName("Modified")]
+        public string Modified { get; set; }
+
+        [JsonPropertyName("Internet_Specials")]
+        public string InternetSpecials { get; set; }
+
+        [JsonPropertyName("Sold")]
+        public string Sold { get; set; }
+
+        [JsonPropertyName("Locked")]
+        public string Locked { get; set; }
+
+        [JsonPropertyName("Dealer_Certified")]
+        public string DealerCertified { get; set; }
+
+        [JsonPropertyName("Manufacturer_Cert_")]
+        public string ManufacturerCertified { get; set; }
+
+        [JsonPropertyName("Rooftop")]
+        public string Rooftop { get; set; }
+
+        [JsonPropertyName("Type")]
+        public string Type { get; set; }
+
+        [JsonPropertyName("MSRP")]
+        public string MSRP { get; set; }
+
+        [JsonPropertyName("Days_in_Stock")]
+        public string DaysInStock { get; set; }
+
+        [JsonPropertyName("Photos")]
+        public string Photos { get; set; }
+
+    }
 }

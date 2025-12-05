@@ -54,7 +54,7 @@ namespace PDFTemplateGenerator.Services
                     for (int i = 0; i <= optionHeader.Length - 1; i++)
                     {
                         optionHeader[i] = "Options" + (i + 1).ToString();
-                        optionRow[i] = rows[0][10].Split("|").Length > i ? rows[0][10].Split("|")[i] : "";
+                        optionRow[i] = rows[rowProc][10].Split("|").Length > i ? rows[rowProc][10].Split("|")[i] : "";
                     }
                     var optionDict = RowToDict(optionHeader.ToList(), optionRow.ToList());
 
@@ -70,7 +70,7 @@ namespace PDFTemplateGenerator.Services
                             foreach (var cell in row.GetTableCells())
                             {
                                 foreach (var p in cell.Paragraphs)
-                                    ReplaceInParagraph(p, table.Rows.Count == 20 ? optionDict : dict);
+                                    ReplaceInParagraph(p, table.NumberOfRows == 20 ? optionDict : dict);
                             }
                         }
                     }
@@ -95,6 +95,7 @@ namespace PDFTemplateGenerator.Services
         public async Task<string> FillDocxTableFromCsvAsync(
             string templateAsset = "Template.docx",
             string csvAsset = "Data.csv",
+            string csvAssetStream = "",
             string outputFileName = "Output_Table.docx",
             bool matchTableByHeader = true)
         {
