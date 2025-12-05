@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36623.8 d17.14
+VisualStudioVersion = 17.14.36623.8
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PDFTemplateGenerator", "PDFTemplateGenerator\PDFTemplateGenerator.csproj", "{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}"
 EndProject
@@ -13,6 +13,7 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAA9D100-D9CE-4A96-B11B-6CF576A06B7B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection

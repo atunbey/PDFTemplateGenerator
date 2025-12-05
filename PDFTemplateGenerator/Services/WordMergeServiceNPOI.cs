@@ -1,4 +1,7 @@
-﻿using NPOI.XWPF.UserModel;
+﻿//using Java.Util;
+//using Java.Util;
+using NPOI.Util;
+using NPOI.XWPF.UserModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -303,6 +306,86 @@ namespace PDFTemplateGenerator.Services
                 dict[key] = i < row.Count ? row[i] : "";
             }
             return dict;
+        }
+
+        public async Task<(List<string> header, List<List<string>> rows)> MakeDealerReport()
+        {
+            //using (List<string> header, List<List<string>> rows) s = await LoadCsvAsync("");
+            var files = new List<string>();
+            files.Add("CSVinventory\\comsoftInventoryCSI2JTZ.CSV");
+            files.Add("CSVinventory\\WebsiteInventory.csv");
+            return await LoadCsvAsync(files);
+        }
+
+        private static async Task<(List<string> header, List<List<string>> rows)> LoadCsvAsync(
+            List<string> csvAssetFileName)
+        {
+            string workDirectory = "C:\\Users\\atunbey\\OneDrive - Afuraka Technology Services\\Documents\\ParkersDocumentProcessing\\";
+            using var s = File.OpenRead(workDirectory + csvAssetFileName[0]);
+            using var reader = new StreamReader(s);
+
+            var lines = new List<string>();
+            while (!reader.EndOfStream)
+            {
+                var line = await reader.ReadLineAsync();
+                if (line != null) lines.Add(line);
+            }
+
+            //var parsed = lines.Select(l => ParseCsvLine(l, sep)).ToList();
+            var parsed = ReadFileIntoRows(workDirectory, csvAssetFileName[0]);
+            if (parsed.Count == 0) return (new List<string>(), new List<List<string>>());
+
+            var websiteParsed = ReadFileIntoRows(workDirectory, csvAssetFileName[1]);
+
+            var headerRowsComplete = ReadHeaderRowsAsync(parsed, false);
+            var headerRowsWeb = ReadHeaderRowsAsync(websiteParsed,true);
+            //return headerRowsComplete;
+
+            int vehCount = 0;
+            while (vehCount < headerRowsComplete.rows.Count)
+            {
+                headerRowsComplete.rows[vehCount][25] = headerRowsWeb.rows.AsEnumerable().Any(a => a[9] == headerRowsComplete.rows[vehCount][2]) ? "Online" : "Needs Work";
+                vehCount++;
+            }
+
+            //var testCountOnline = headerRowsComplete.rows.AsEnumerable().Count(c => c[25] == "Online");
+            //var testCountNeedWordk = headerRowsComplete.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
+
+            return headerRowsComplete;
+        }
+
+        private static List<List<string>>? ReadFileIntoRows(string fileLocation, string fileName, char sep = ',')
+        {
+            //string workDirectory = "C:\\Users\\atunbey\\OneDrive - Afuraka Technology Services\\Documents\\ParkersDocumentProcessing\\";
+            using var s = File.OpenRead(fileLocation + fileName);
+            using var reader = new StreamReader(s);
+
+            var lines = new List<string>();
+            while (!reader.EndOfStream)
+            {
+                var line = reader.ReadLineAsync().Result;
+                if (line != null) lines.Add(line);
+            }
+
+            return lines.Select(l => ParseCsvLine(l, sep)).ToList();
+        }
+
+        private static (List<string> header, List<List<string>> rows) ReadHeaderRowsAsync(List<List<string>> lines, bool isHeader)
+        {
+            var header = new List<string>();
+            switch (isHeader)
+            {
+                case true:
+                    header = lines[0].Select(h => (h ?? "").Trim()).ToList();
+                    break;
+            }
+            
+            var rows = lines
+                .Skip(isHeader ? 1 : 0)
+                .Where(r => r.Any(v => !string.IsNullOrWhiteSpace(v)))
+                .ToList();
+
+            return (header, rows);
         }
 
     }

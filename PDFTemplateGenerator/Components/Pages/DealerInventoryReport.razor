@@ -1,0 +1,58 @@
+﻿@page "/dealerinventoryreport"
+
+@inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
+
+<h3>Dealer Inventory Report</h3>
+
+<h3>Build Report</h3>
+
+<div class="buttons">
+    <button class="btn btn-primary" @onclick="StartBuildingReport">Start Building Report</button>
+</div>
+
+@if (vinReport.rows.Count == 0)
+{
+    <p>NO CARS LOADED</p>
+}
+else
+{
+    <p>Cars loaded and report created. Total cars in system is @countCarTotal. Of those cars, @countOnline of those are </p>
+    <p>online with pictures. The remaining @countNeedWork vehicles are listed in the system, but are not onine and need work.</p>
+
+    <p>BUILD YOUOR WORK LIST</p>
+
+    //<InputText id="searchBox" onkeyup="">Search Stock Number</InputText>
+    <input id="vehicleSearch" @onkeyup="findVehicle" />
+
+    @foreach (var cars in vinReport.rows.GetRange(0,10))
+    {
+        <li>@cars[25] @cars[2] @cars[6] @cars[7] @cars[8] @cars[9]</li>
+    }
+}
+
+@code {
+
+    private (List<string> header, List<List<string>> rows) vinReport = (new List<string>(), new List<List<string>>());
+    private int countOnline = 0;
+    private int countNeedWork = 0;
+    private int countCarTotal = 0;
+
+    private async Task findVehicle()
+    {
+        //var searchWith = @vehi
+        
+        HttpRequestMessage requestMessage;
+        //var test = HttpRequestMessage.;
+        var vehicleSearch = vinReport.rows.AsEnumerable().Where(w => w[2].Contains("510"));
+        
+    }
+
+    private async Task StartBuildingReport()
+    {
+        var vehicleReport = await wordMerge.MakeDealerReport();
+        countCarTotal = vehicleReport.rows.Count();
+        countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
+        countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
+        vinReport = vehicleReport;
+    }
+}
