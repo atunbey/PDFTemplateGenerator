@@ -19,10 +19,29 @@ else
     <p>Cars loaded and report created. Total cars in system is @countCarTotal. Of those cars, @countOnline of those are </p>
     <p>online with pictures. The remaining @countNeedWork vehicles are listed in the system, but are not onine and need work.</p>
 
-    <p>BUILD YOUOR WORK LIST</p>
+    <p>BUILD YOUR WORK LIST</p>
 
-    //<InputText id="searchBox" onkeyup="">Search Stock Number</InputText>
-    <input id="vehicleSearch" @onkeyup="findVehicle" />
+    <InputText 
+        id="searchBox"
+        @bind-Value="searchText"
+        @oninput="findVehicle">Search Stock Number
+
+    </InputText>
+    //<input id="vehicleSearch" @onkeyup="findVehicle" />
+
+    
+
+        @* <Template Context="car">
+            @car[25] @car[2] @car[6] @car[7] @car[8] @car[9]
+        </Template> *@
+        
+    <select @bind="selectedVehicle" class="form-select" size="5">
+        @foreach (var cars in vehicleSearchList)
+        {
+            <option value="@cars[2]">@cars[25] @cars[2] @cars[6] @cars[7] @cars[8] @cars[9]</option>
+        }
+    )
+    </select>
 
     @foreach (var cars in vinReport.rows.GetRange(0,10))
     {
@@ -36,15 +55,27 @@ else
     private int countOnline = 0;
     private int countNeedWork = 0;
     private int countCarTotal = 0;
+    private string searchText = string.Empty;
+    private string selectedVehicle = string.Empty;
+    private List<List<string>> vehicleSearchList = new List<List<string>>();
 
-    private async Task findVehicle()
+    private async Task<IEnumerable<string>> findVehicle(ChangeEventArgs e)
     {
-        //var searchWith = @vehi
-        
-        HttpRequestMessage requestMessage;
+        var searchWith = e.Value?.ToString();
+        searchText = searchWith ?? string.Empty;
+        //HttpRequestMessage requestMessage;
         //var test = HttpRequestMessage.;
-        var vehicleSearch = vinReport.rows.AsEnumerable().Where(w => w[2].Contains("510"));
-        
+        if (!string.IsNullOrWhiteSpace(searchWith) && searchWith.Length >= 3)
+        {
+            var vehicleSearch = vinReport.rows.AsEnumerable().Where(w => w[2].Contains(searchWith));
+            vehicleSearchList = vehicleSearch.ToList();
+            return (vehicleSearch.Select(s => s[2]));
+        }
+        else
+        {
+            return Enumerable.Empty<string>();
+        }
+
     }
 
     private async Task StartBuildingReport()
