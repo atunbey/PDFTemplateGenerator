@@ -1,0 +1,20 @@
+﻿@page "/ldc"
+@inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
+
+<h3>Legal Document Creator</h3>
+
+<div class="buttons">
+    <button class="btn btn-primary" @onclick="GenerateLegalDocuments">Generate Certificate Of Trust</button>
+</div>
+
+@code {
+
+    private async Task GenerateLegalDocuments()
+    {
+        var legalDocs = await wordMerge.MakeDealerReport();
+        countCarTotal = vehicleReport.rows.Count();
+        countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
+        countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
+        vinReport = vehicleReport;
+    }
+}

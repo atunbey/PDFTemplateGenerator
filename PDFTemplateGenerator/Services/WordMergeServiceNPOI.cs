@@ -318,6 +318,13 @@ namespace PDFTemplateGenerator.Services
             return await LoadCsvAsync(files);
         }
 
+        public async Task<(List<string> header, List<List<string>> rows)> CreateLegalDocuments()
+        {
+            var files = new List<string>();
+            files.Add("\\CertificateOfTrustForLivingTrust_Example.docx");
+            return await LoadCsvAsync(files);
+        }
+
         private static async Task<(List<string> header, List<List<string>> rows)> LoadCsvAsync(
             List<string> csvAssetFileName)
         {
