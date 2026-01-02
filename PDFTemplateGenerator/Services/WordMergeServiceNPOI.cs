@@ -325,6 +325,12 @@ namespace PDFTemplateGenerator.Services
             return await LoadCsvAsync(files);
         }
 
+        private static async Task<string> LoadFileAndClient(List<string> fileLoc)
+        {
+
+            return "";
+        }
+
         private static async Task<(List<string> header, List<List<string>> rows)> LoadCsvAsync(
             List<string> csvAssetFileName)
         {

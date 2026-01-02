@@ -1,4 +1,8 @@
 ﻿@page "/ldc"
+
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+@inject HttpClient Http;
 @inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
 
 <h3>Legal Document Creator</h3>
@@ -9,12 +13,34 @@
 
 @code {
 
+    private string? _status;
+    private string? _lastOutputPath;
+    private string _onlineCarDataUrl = "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Beneficiary/records";
+    private string _onlineCarDateUrlApiKey = "863a5652184fa2a988f217019a3ebf751f7d3fc7";
+
     private async Task GenerateLegalDocuments()
     {
-        var legalDocs = await wordMerge.MakeDealerReport();
-        countCarTotal = vehicleReport.rows.Count();
-        countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
-        countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
-        vinReport = vehicleReport;
+        // var legalDocs = await wordMerge.MakeDealerReport();
+        // countCarTotal = vehicleReport.rows.Count();
+        // countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
+        // countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
+        // vinReport = vehicleReport;
+
+        try
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, _onlineCarDataUrl);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _onlineCarDateUrlApiKey);
+
+            var response = await Http.SendAsync(request);
+
+            var json = await response.Content.ReadAsStringAsync();
+            //carInventory = JsonSerializer.Deserialize<CarObject>(json);
+
+        }
+        catch (Exception ex)
+        {
+            //_status = "Error fetching car data: " + ex.Message;
+            //return;
+        }
     }
 }
