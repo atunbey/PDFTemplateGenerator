@@ -1,0 +1,131 @@
+# Hugo
+title = "PDFTemplateGenerator Docs"
+description = "Documentation for PDFTemplateGenerator — a .NET MAUI Blazor application for generating PDF, Word, and Excel documents from templates and CSV data."
+images = ["cover.png"]
+
+# mainSections
+mainSections = ["docs"]
+
+math = false
+mathEngine = "KaTeX" # "KaTeX" (default) or "MathJax"
+
+[social]
+  twitter = ""
+
+# Doks (@thulite/doks-core)
+[doks]
+  # Color mode
+  colorMode = "auto" # auto (default), light or dark
+  colorModeToggler = true
+
+  # Navbar
+  navbarSticky = true
+  containerBreakpoint = "fluid"
+
+  ## Button
+  navBarButton = true
+  navBarButtonUrl = "/docs/guides/getting-started/"
+  navBarButtonText = "Get started"
+
+  # FlexSearch
+  flexSearch = true
+  searchExclKinds = []
+  searchExclTypes = []
+  showSearch = []
+  indexSummary = false
+
+  ## Search results
+  showDate = false
+  showSummary = true
+  searchLimit = 99
+
+  # Global alert
+  alert = false
+  alertDismissable = true
+
+  # Bootstrap
+  bootstrapJavascript = false
+
+  # Nav
+  sectionSwitcher = false
+  sectionNav = ["docs"]
+  toTopButton = false
+  breadcrumbTrail = true
+  headlineHash = true
+  scrollSpy = true
+
+  # Multilingual
+  multilingualMode = false
+  showMissingLanguages = true
+
+  # Versioning
+  docsVersioning = false
+  docsVersion = "1.0"
+
+  # UX
+  headerBar = false
+  backgroundDots = true
+  aiButtons = false
+
+  # Homepage
+  sectionFooter = false
+
+  # Blog
+  relatedPosts = false
+  imageList = true
+  imageSingle = true
+
+  # Repository
+  editPage = true
+  lastMod = true
+  repoHost = "GitHub"
+  docsRepo = "https://github.com/atunbey/PDFTemplateGenerator"
+  docsRepoBranch = "main"
+  docsRepoSubPath = "docs"
+
+  krokiURL = "https://kroki.io"
+
+# Debug
+[render_hooks.image]
+  errorLevel = 'ignore'
+
+[render_hooks.link]
+  errorLevel = 'ignore'
+  highlightBroken = false
+
+# Images (@thulite/images)
+[thulite_images]
+  [thulite_images.defaults]
+    decoding = "async"
+    fetchpriority = "auto"
+    loading = "lazy"
+    widths = [480, 576, 768, 1025, 1200, 1440]
+    sizes = "auto"
+    process = ""
+    lqip = "16x webp q20"
+
+# Inline SVG (@thulite/inline-svg)
+[inline_svg]
+  iconSetDir = "tabler-icons"
+  iconSetVariant = "outline"
+
+# SEO (@thulite/seo)
+[seo]
+  [seo.title]
+    separator = ""
+    suffix = ""
+  [seo.description]
+    summaryFallback = ""
+  [seo.favicons]
+    icon = "favicon.png"
+    svgIcon = "favicon.svg"
+  [seo.schemas]
+    type = "Organization"
+    logo = "favicon-512x512.png"
+    name = "PDFTemplateGenerator"
+    sameAs = ["https://github.com/atunbey/PDFTemplateGenerator"]
+    images = ["cover.png"]
+    article = []
+    newsArticle = []
+    blogPosting = ["blog"]
+    product = []
