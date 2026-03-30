@@ -7,6 +7,13 @@ a, .btn-link {
     color: #006bb7;
 }
 
+.bottom-right-fab {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 1000;
+}
+
 .btn-primary {
     color: #fff;
     background-color: #1b6ec2;

@@ -1,6 +1,7 @@
 ﻿@page "/dealerinventoryreport"
 
-@inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
+@using PDFTemplateGenerator.Models
+@inject PDFTemplateGenerator.Services.IDealerInventoryReportService dealerReportService;
 
 <h3>Dealer Inventory Report</h3>
 
@@ -10,7 +11,7 @@
     <button class="btn btn-primary" @onclick="StartBuildingReport">Start Building Report</button>
 </div>
 
-@if (vinReport.rows.Count == 0)
+@if (vinReport.Vehicles.Count == 0)
 {
     <p>NO CARS LOADED</p>
 }
@@ -21,7 +22,7 @@ else
 
     <p>BUILD YOUR WORK LIST</p>
 
-    <InputText 
+    <InputText
         id="searchBox"
         @bind-Value="searchText"
         @oninput="findVehicle">Search Stock Number
@@ -29,61 +30,55 @@ else
     </InputText>
     //<input id="vehicleSearch" @onkeyup="findVehicle" />
 
-    
-
-        @* <Template Context="car">
-            @car[25] @car[2] @car[6] @car[7] @car[8] @car[9]
-        </Template> *@
-        
     <select @bind="selectedVehicle" class="form-select" size="5">
         @foreach (var cars in vehicleSearchList)
         {
-            <option value="@cars[2]">@cars[25] @cars[2] @cars[6] @cars[7] @cars[8] @cars[9]</option>
+            <option value="@cars.StockNumber">@cars.Summary</option>
         }
-    )
     </select>
 
-    @foreach (var cars in vinReport.rows.GetRange(0,10))
+    @foreach (var cars in vinReport.Vehicles.Take(10))
     {
-        <li>@cars[25] @cars[2] @cars[6] @cars[7] @cars[8] @cars[9]</li>
+        <li>@cars.Summary</li>
     }
 }
 
 @code {
 
-    private (List<string> header, List<List<string>> rows) vinReport = (new List<string>(), new List<List<string>>());
+    private DealerInventoryReportResult vinReport = new();
     private int countOnline = 0;
     private int countNeedWork = 0;
     private int countCarTotal = 0;
     private string searchText = string.Empty;
     private string selectedVehicle = string.Empty;
-    private List<List<string>> vehicleSearchList = new List<List<string>>();
+    private List<DealerInventoryVehicle> vehicleSearchList = new();
 
-    private async Task<IEnumerable<string>> findVehicle(ChangeEventArgs e)
+    private Task<IEnumerable<string>> findVehicle(ChangeEventArgs e)
     {
         var searchWith = e.Value?.ToString();
         searchText = searchWith ?? string.Empty;
-        //HttpRequestMessage requestMessage;
-        //var test = HttpRequestMessage.;
+
         if (!string.IsNullOrWhiteSpace(searchWith) && searchWith.Length >= 3)
         {
-            var vehicleSearch = vinReport.rows.AsEnumerable().Where(w => w[2].Contains(searchWith));
+            var vehicleSearch = vinReport.Vehicles
+                .Where(v => v.StockNumber.Contains(searchWith, StringComparison.OrdinalIgnoreCase));
+
             vehicleSearchList = vehicleSearch.ToList();
-            return (vehicleSearch.Select(s => s[2]));
+            return Task.FromResult(vehicleSearch.Select(v => v.StockNumber));
         }
         else
         {
-            return Enumerable.Empty<string>();
+            vehicleSearchList = new List<DealerInventoryVehicle>();
+            return Task.FromResult(Enumerable.Empty<string>());
         }
-
     }
 
     private async Task StartBuildingReport()
     {
-        var vehicleReport = await wordMerge.MakeDealerReport();
-        countCarTotal = vehicleReport.rows.Count();
-        countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
-        countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
+        var vehicleReport = await dealerReportService.BuildReportAsync();
+        countCarTotal = vehicleReport.Vehicles.Count;
+        countOnline = vehicleReport.Vehicles.Count(v => v.WebsiteStatus == "Online");
+        countNeedWork = vehicleReport.Vehicles.Count(v => v.WebsiteStatus == "Needs Work");
         vinReport = vehicleReport;
     }
 }

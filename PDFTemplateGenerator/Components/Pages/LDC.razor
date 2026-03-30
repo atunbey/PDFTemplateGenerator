@@ -1,46 +1,140 @@
 ﻿@page "/ldc"
 
-@using System.Text.Json;
-@using System.Text.Json.Serialization;
-@inject HttpClient Http;
-@inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
+@using PDFTemplateGenerator.Models
+@inject PDFTemplateGenerator.Services.IGristClientService GristClientService
+@inject PDFTemplateGenerator.Services.ILegalDocumentService LegalDocumentService
 
 <h3>Legal Document Creator</h3>
 
-<div class="buttons">
-    <button class="btn btn-primary" @onclick="GenerateLegalDocuments">Generate Certificate Of Trust</button>
+<div class="mb-3">
+    <label for="clientSearch" class="form-label">Search client</label>
+    <InputText
+        id="clientSearch"
+        class="form-control"
+        @bind-Value="_searchText"
+        @bind-Value:event="oninput"
+        placeholder="Type last, first, or middle name" />
 </div>
+
+<div class="mb-3">
+    <label for="clientSelect" class="form-label">Select beneficiary</label>
+    <select id="clientSelect" class="form-select" @bind="_selectedClientRecordId" size="10">
+        <option value="">-- Select a client --</option>
+        @foreach (var client in FilteredClients)
+        {
+            <option value="@client.RecordId">@client.DisplayName (@client.RecordId)</option>
+        }
+    </select>
+    <small class="text-muted">@FilteredClients.Count() result(s)</small>
+</div>
+
+<div class="mb-3">
+    <label for="templateSelect" class="form-label">Select template</label>
+    <select id="templateSelect" class="form-select" @bind="_selectedTemplate">
+        <option value="">-- Select a template --</option>
+        @foreach (var template in _availableTemplates)
+        {
+            <option value="@template">@template</option>
+        }
+    </select>
+    @if (!_availableTemplates.Any())
+    {
+        <small class="text-danger">No .docx templates found in configured folder.</small>
+    }
+</div>
+
+<div class="buttons">
+    <button
+        class="btn btn-primary bottom-right-fab"
+        disabled="@(_isLoadingClients || _isGenerating || string.IsNullOrWhiteSpace(_selectedClientRecordId) || string.IsNullOrEmpty(_selectedTemplate))"
+        @onclick="GenerateLegalDocuments">
+        Generate Certificate Of Trust
+    </button>
+</div>
+
+@if (_isLoadingClients)
+{
+    <p>Loading client list from Grist...</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(_status))
+{
+    <p>@_status</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(_lastOutputPath))
+{
+    <p>@_lastOutputPath</p>
+}
 
 @code {
 
     private string? _status;
     private string? _lastOutputPath;
-    private string _onlineCarDataUrl = "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Beneficiary/records";
-    private string _onlineCarDateUrlApiKey = "863a5652184fa2a988f217019a3ebf751f7d3fc7";
+    private string _searchText = string.Empty;
+    private string _selectedClientRecordId = string.Empty;
+    private string _selectedTemplate = string.Empty;
+    private List<string> _availableTemplates = new();
+    private bool _isLoadingClients;
+    private bool _isGenerating;
+    private List<BeneficiaryClient> _clients = new();
 
-    private async Task GenerateLegalDocuments()
+    private IEnumerable<BeneficiaryClient> FilteredClients =>
+        string.IsNullOrWhiteSpace(_searchText)
+            ? _clients
+            : _clients.Where(c =>
+                c.DisplayName.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+
+    protected override async Task OnInitializedAsync()
     {
-        // var legalDocs = await wordMerge.MakeDealerReport();
-        // countCarTotal = vehicleReport.rows.Count();
-        // countOnline = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Online");
-        // countNeedWork = vehicleReport.rows.AsEnumerable().Count(c => c[25] == "Needs Work");
-        // vinReport = vehicleReport;
+        _isLoadingClients = true;
+        _status = "Loading clients...";
 
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, _onlineCarDataUrl);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _onlineCarDateUrlApiKey);
-
-            var response = await Http.SendAsync(request);
-
-            var json = await response.Content.ReadAsStringAsync();
-            //carInventory = JsonSerializer.Deserialize<CarObject>(json);
-
+            var result = await GristClientService.GetBeneficiariesAsync();
+            _clients = result.ToList();
+            _status = $"Loaded {_clients.Count} client(s).";
         }
         catch (Exception ex)
         {
-            //_status = "Error fetching car data: " + ex.Message;
-            //return;
+            _status = "Unable to load clients from Grist: " + ex.Message;
+            _clients = new List<BeneficiaryClient>();
+        }
+        finally
+        {
+            _isLoadingClients = false;
+        }
+
+            _availableTemplates = LegalDocumentService.GetAvailableTemplates().ToList();
+            if (_availableTemplates.Count == 1)
+                _selectedTemplate = _availableTemplates[0];
+    }
+
+    private async Task GenerateLegalDocuments()
+    {
+            if (string.IsNullOrWhiteSpace(_selectedClientRecordId))
+        {
+            _status = "Select a client before generating documents.";
+            return;
+        }
+
+        _isGenerating = true;
+        _lastOutputPath = null;
+        _status = "Generating legal document...";
+
+        try
+        {
+            _lastOutputPath = await LegalDocumentService.GenerateCertificateOfTrustAsync(_selectedClientRecordId, _selectedTemplate);
+            _status = "Document generated successfully.";
+        }
+        catch (Exception ex)
+        {
+            _status = "Failed to generate document: " + ex.Message;
+        }
+        finally
+        {
+            _isGenerating = false;
         }
     }
 }

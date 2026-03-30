@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace PDFTemplateGenerator.Services
 {
-    internal class ExcelMergeService
+    internal class ExcelMergeService(ICsvReaderService csvReader)
     {
 
         /// <summary>
@@ -26,7 +26,9 @@ namespace PDFTemplateGenerator.Services
             IWorkbook wb = new XSSFWorkbook(templateStream);
 
             // 2) Read CSV: first row = header, next row = data
-            var (header, rows) = await ReadCsvAssetAsync(csvAssetFileName);
+            var csvData = await csvReader.ReadFromAppPackageAsync(csvAssetFileName);
+            var header = csvData.Header;
+            var rows = csvData.Rows;
             if (rows.Count == 0)
                 throw new InvalidOperationException("CSV has no data rows.");
 
@@ -87,7 +89,9 @@ namespace PDFTemplateGenerator.Services
             var modelRow = sheet.GetRow(firstDataRowIdx) ?? sheet.CreateRow(firstDataRowIdx);
 
             // 3) Read CSV
-            var (csvHeader, dataRows) = await ReadCsvAssetAsync(csvAssetFileName);
+            var csvData = await csvReader.ReadFromAppPackageAsync(csvAssetFileName);
+            var csvHeader = csvData.Header;
+            var dataRows = csvData.Rows;
             if (csvHeader.Count == 0)
                 throw new InvalidOperationException("CSV has no header row.");
 
@@ -133,61 +137,6 @@ namespace PDFTemplateGenerator.Services
 
 
         // ----------------- Helpers -----------------
-
-        private static async Task<(List<string> header, List<List<string>> rows)> ReadCsvAssetAsync(
-            string csvAssetFileName, char sep = ',')
-        {
-            using var s = await FileSystem.OpenAppPackageFileAsync(csvAssetFileName);
-            using var reader = new StreamReader(s);
-
-            var lines = new List<string>();
-            while (!reader.EndOfStream)
-            {
-                var line = await reader.ReadLineAsync();
-                if (line != null) lines.Add(line);
-            }
-
-            var parsed = lines.Select(l => ParseCsvLine(l, sep)).ToList();
-            if (parsed.Count == 0) return (new List<string>(), new List<List<string>>());
-
-            var header = parsed[0].Select(h => (h ?? "").Trim()).ToList();
-            var rows = parsed.Skip(1)
-                             .Where(r => r.Any(v => !string.IsNullOrWhiteSpace(v)))
-                             .ToList();
-
-            return (header, rows);
-        }
-
-        private static List<string> ParseCsvLine(string line, char sep)
-        {
-            // Handles quoted fields, commas within quotes, and escaped quotes ("")
-            var result = new List<string>();
-            bool inQuotes = false;
-            var cur = new System.Text.StringBuilder();
-
-            for (int i = 0; i < line.Length; i++)
-            {
-                char ch = line[i];
-
-                if (inQuotes)
-                {
-                    if (ch == '"')
-                    {
-                        if (i + 1 < line.Length && line[i + 1] == '"') { cur.Append('"'); i++; }
-                        else { inQuotes = false; }
-                    }
-                    else cur.Append(ch);
-                }
-                else
-                {
-                    if (ch == '"') inQuotes = true;
-                    else if (ch == sep) { result.Add(cur.ToString()); cur.Clear(); }
-                    else cur.Append(ch);
-                }
-            }
-            result.Add(cur.ToString());
-            return result;
-        }
 
         private static Dictionary<string, string> RowToDict(List<string> header, List<string> row)
         {

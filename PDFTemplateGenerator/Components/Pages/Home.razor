@@ -4,13 +4,14 @@
 @using PDFTemplateGenerator; // Use the correct namespace where DocxFromTemplate is defined
 
 @inject PDFTemplateGenerator.Services.ExcelMergeService excelMerge;
-@inject PDFTemplateGenerator.Services.WordMergeServiceNPOI wordMerge;
+@inject PDFTemplateGenerator.Services.IWordMergeService wordMerge;
 
 @using Microsoft.Maui.ApplicationModel;
 @using Microsoft.Maui.Storage;
 @using System.Text.Json;
 @using System.Text.Json.Serialization
 @inject HttpClient Http;
+@inject PDFTemplateGenerator.Services.AutomotiveApiOptions AutomotiveApiOptions
 
 <h1>Hello, world!</h1>
 
@@ -77,9 +78,6 @@ Welcome to your new app.
 
     private string? _status;
     private string? _lastOutputPath;
-    private string _onlineCarDataUrl = "https://onlinedata.kushkurriculum.org/api/docs/czGVryH9XzdH5qBAXzD4ib/tables/AutomotiveHeaders/records";
-    private string _onlineCarDateUrlApiKey = "863a5652184fa2a988f217019a3ebf751f7d3fc7";
-
     private async Task FillPlaceholders()
     {
         try
@@ -159,8 +157,8 @@ Welcome to your new app.
     {
         try
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, _onlineCarDataUrl);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _onlineCarDateUrlApiKey);
+            var request = new HttpRequestMessage(HttpMethod.Get, AutomotiveApiOptions.RecordsUrl);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AutomotiveApiOptions.ApiKey);
 
             var response = await Http.SendAsync(request);
 
