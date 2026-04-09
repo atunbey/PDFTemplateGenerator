@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using PDFTemplateGenerator.Services;
+using System.Net;
 
 namespace PDFTemplateGenerator
 {
@@ -21,7 +22,10 @@ namespace PDFTemplateGenerator
             builder.Services.AddSingleton<IWordMergeService, WordMergeService>();
             builder.Services.AddSingleton<IDealerInventoryReportService, DealerInventoryReportService>();
             builder.Services.AddSingleton<ExcelMergeService>();
-            builder.Services.AddSingleton(new HttpClient());
+            builder.Services.AddSingleton(new HttpClient(new SocketsHttpHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            }));
             builder.Services.AddSingleton(new AutomotiveApiOptions
             {
                 RecordsUrl = Environment.GetEnvironmentVariable("AUTOMOTIVE_RECORDS_URL")
@@ -38,8 +42,24 @@ namespace PDFTemplateGenerator
             });
             builder.Services.AddSingleton(new LegalDocumentOptions
             {
-                    CertificateTemplateFolder = Environment.GetEnvironmentVariable("LEGALDOC_CERT_TEMPLATE_PATH")
-                        ?? string.Empty
+                CertificateTemplateFolder = Environment.GetEnvironmentVariable("LEGALDOC_CERT_TEMPLATE_PATH")
+                    ?? string.Empty,
+                NextcloudFolderUrl = Environment.GetEnvironmentVariable("LEGALDOC_NEXTCLOUD_FOLDER_URL")
+                    ?? "https://tools.kushkurriculum.org/nextcloud/s/oPsT24RoZGssbMN",
+                NextcloudWebDavFolderUrl = Environment.GetEnvironmentVariable("LEGALDOC_NEXTCLOUD_WEBDAV_FOLDER_URL")
+                    ?? string.Empty,
+                NextcloudUsername = Environment.GetEnvironmentVariable("LEGALDOC_NEXTCLOUD_USERNAME")
+                    ?? string.Empty,
+                NextcloudAppPassword = Environment.GetEnvironmentVariable("LEGALDOC_NEXTCLOUD_APP_PASSWORD")
+                    ?? string.Empty,
+                EnableNextcloudTemplates = !string.Equals(
+                    Environment.GetEnvironmentVariable("LEGALDOC_ENABLE_NEXTCLOUD_TEMPLATES"),
+                    "false",
+                    StringComparison.OrdinalIgnoreCase),
+                EnableLocalTemplateFallback = string.Equals(
+                    Environment.GetEnvironmentVariable("LEGALDOC_ENABLE_LOCAL_TEMPLATE_FALLBACK"),
+                    "true",
+                    StringComparison.OrdinalIgnoreCase)
             });
             builder.Services.AddSingleton(new DealerInventoryReportOptions
             {

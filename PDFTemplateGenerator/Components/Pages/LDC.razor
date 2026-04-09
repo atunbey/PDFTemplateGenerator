@@ -39,16 +39,25 @@
     </select>
     @if (!_availableTemplates.Any())
     {
-        <small class="text-danger">No .docx templates found in configured folder.</small>
+        <small class="text-danger">No .docx templates found from configured source.</small>
     }
 </div>
+
+@if (!string.IsNullOrWhiteSpace(_lastOutputPath))
+{
+    <div class="mb-3">
+        <button type="button" class="btn btn-link p-0" @onclick="OpenLastOutputAsync">
+            Open generated document
+        </button>
+    </div>
+}
 
 <div class="buttons">
     <button
         class="btn btn-primary bottom-right-fab"
         disabled="@(_isLoadingClients || _isGenerating || string.IsNullOrWhiteSpace(_selectedClientRecordId) || string.IsNullOrEmpty(_selectedTemplate))"
         @onclick="GenerateLegalDocuments">
-        Generate Certificate Of Trust
+        Merge Template With Bene
     </button>
 </div>
 
@@ -106,9 +115,17 @@
             _isLoadingClients = false;
         }
 
-            _availableTemplates = LegalDocumentService.GetAvailableTemplates().ToList();
-            if (_availableTemplates.Count == 1)
-                _selectedTemplate = _availableTemplates[0];
+            try
+            {
+                _availableTemplates = (await LegalDocumentService.GetAvailableTemplatesAsync()).ToList();
+                if (_availableTemplates.Count == 1)
+                    _selectedTemplate = _availableTemplates[0];
+            }
+            catch (Exception ex)
+            {
+                _status = "Unable to load template list: " + ex.Message;
+                _availableTemplates = new List<string>();
+            }
     }
 
     private async Task GenerateLegalDocuments()
@@ -135,6 +152,42 @@
         finally
         {
             _isGenerating = false;
+        }
+    }
+
+    private async Task OpenLastOutputAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_lastOutputPath))
+        {
+            _status = "No generated document is available to open.";
+            return;
+        }
+
+        try
+        {
+            await Launcher.Default.OpenAsync(new OpenFileRequest(
+                "Generated Document",
+                new ReadOnlyFile(_lastOutputPath)));
+        }
+        catch (FeatureNotSupportedException)
+        {
+            _status = "Opening files is not supported on this device.";
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                await Share.Default.RequestAsync(new ShareFileRequest
+                {
+                    Title = "Share generated document",
+                    File = new ShareFile(_lastOutputPath)
+                });
+                _status = "No app could open the document directly. Shared instead.";
+            }
+            catch
+            {
+                _status = "Unable to open generated document: " + ex.Message;
+            }
         }
     }
 }
