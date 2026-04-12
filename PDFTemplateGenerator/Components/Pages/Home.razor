@@ -1,343 +1,75 @@
-﻿@page "/"
-@using NPOI.Util;
-@using NPOI.XWPF.UserModel;
-@using PDFTemplateGenerator; // Use the correct namespace where DocxFromTemplate is defined
+@page "/"
 
-@inject PDFTemplateGenerator.Services.ExcelMergeService excelMerge;
-@inject PDFTemplateGenerator.Services.IWordMergeService wordMerge;
+<section class="login-shell" aria-labelledby="loginTitle">
+	<div class="login-panel">
+		<p class="login-eyebrow">Living Equity Private Ministry</p>
+		<h1 id="loginTitle">Welcome Back</h1>
+		<p class="login-subtitle">Sign in to continue to Constitutional Document Creator.</p>
 
-@using Microsoft.Maui.ApplicationModel;
-@using Microsoft.Maui.Storage;
-@using System.Text.Json;
-@using System.Text.Json.Serialization
-@inject HttpClient Http;
-@inject PDFTemplateGenerator.Services.AutomotiveApiOptions AutomotiveApiOptions
+		<EditForm Model="_login" OnValidSubmit="HandleLoginAsync" class="login-form">
+			<DataAnnotationsValidator />
 
-<h1>Hello, world!</h1>
+			<div class="login-field">
+				<label for="emailInput" class="form-label">Email</label>
+				<InputText id="emailInput" class="form-control" @bind-Value="_login.Email" autocomplete="username" />
+				<ValidationMessage For="() => _login.Email" />
+			</div>
 
-Welcome to your new app.
+			<div class="login-field">
+				<label for="passwordInput" class="form-label">Password</label>
+				<InputText id="passwordInput" class="form-control" type="password" @bind-Value="_login.Password" autocomplete="current-password" />
+				<ValidationMessage For="() => _login.Password" />
+			</div>
 
+			<div class="login-meta-row">
+				<label class="remember-toggle">
+					<InputCheckbox @bind-Value="_login.RememberMe" />
+					<span>Remember me</span>
+				</label>
+				<button type="button" class="btn btn-link forgot-link" @onclick="ShowResetPlaceholder">Forgot password?</button>
+			</div>
 
-<h3>Build Excel from Template</h3>
+			<button type="submit" class="btn login-submit" disabled="@_isSubmitting">
+				@(_isSubmitting ? "Signing In..." : "Sign In")
+			</button>
+		</EditForm>
 
-<div class="buttons">
-    <button class="btn btn-primary" @onclick="FillPlaceholders">Fill placeholders (first CSV row)</button>
-    <button class="btn btn-secondary" @onclick="AppendTable">Append table (all CSV rows)</button>
-</div>
-
-<h3>Build DOCX from Template</h3>
-
-<div class="buttons">
-    <button class="btn btn-primary" @onclick="FillPlaceholdersDOCX">Fill placeholders (first CSV row)</button>
-    <button class="btn btn-secondary" @onclick="BuildTable">Append table (all CSV rows)</button>
-</div>
-
-@if (!string.IsNullOrWhiteSpace(_status))
-{
-    <p>@_status</p>
-    @if (!string.IsNullOrWhiteSpace(_lastOutputPath))
-    {
-        <p><code>@_lastOutputPath</code></p>
-        <button class="btn btn-link" @onclick="OpenOutput">Open file</button>
-        <button class="btn btn-link" @onclick="ShareOutput">Share file</button>
-    }
-}
-
+		@if (!string.IsNullOrWhiteSpace(_statusMessage))
+		{
+			<p class="login-status">@_statusMessage</p>
+		}
+	</div>
+</section>
 
 @code {
-    private CarObject carInventory = new CarObject(); 
-    private void GenerateBuyersGuide()
-    {
-        var data = new Dictionary<string, string>
-        {
+	private readonly LoginFormModel _login = new();
+	private bool _isSubmitting;
+	private string? _statusMessage;
 
-            ["{{Make}}"] = "Atun",
-            ["{{Model}}"] = "Bey",
-            ["{{Year}}"] = "123 Main St",
-            ["{{VIN}}"] = "Columbia",
-            ["{{Trim}}"] = "SC",
-            ["{{Stock_No}}"] = "29201"
+	private async Task HandleLoginAsync()
+	{
+		_isSubmitting = true;
+		_statusMessage = null;
+		await Task.Delay(450);
+		_isSubmitting = false;
+		_statusMessage = "Login UI is ready, but authentication is not wired yet.";
+	}
 
-        };
-        // Logic to generate PDF template using the data dictionary
-        // This is a placeholder for actual PDF generation code
+	private void ShowResetPlaceholder()
+	{
+		_statusMessage = "Password reset flow will be connected in a later step.";
+	}
 
-        //DocxFromTemplate.Generate("template.docx", "letter-out.docx", data);
-        Console.WriteLine("Generating PDF Template with the following data:");
-        foreach (var item in data)
-        {
-            Console.WriteLine($"{item.Key}: {item.Value}");
-        }
-    }
+	private sealed class LoginFormModel
+	{
+		[System.ComponentModel.DataAnnotations.Required]
+		[System.ComponentModel.DataAnnotations.EmailAddress]
+		public string Email { get; set; } = string.Empty;
 
-    private void GenerateVEL()
-    {
+		[System.ComponentModel.DataAnnotations.Required]
+		[System.ComponentModel.DataAnnotations.MinLength(6)]
+		public string Password { get; set; } = string.Empty;
 
-    }
-
-
-    private string? _status;
-    private string? _lastOutputPath;
-    private async Task FillPlaceholders()
-    {
-        try
-        {
-            _status = "Working...";
-            StateHasChanged();
-
-            _lastOutputPath = await excelMerge.FillTemplateFromCsvAsync(
-                templateAssetFileName: "Template.xlsx",
-                csvAssetFileName: "Data.csv",
-                outputFileName: "Output_Filled.xlsx");
-
-            _status = $"Created: {_lastOutputPath}";
-        }
-        catch (Exception ex)
-        {
-            _status = "Error: " + ex.Message;
-            _lastOutputPath = null;
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
-
-    private async Task AppendTable()
-    {
-        try
-        {
-            _status = "Working...";
-            StateHasChanged();
-
-            _lastOutputPath = await excelMerge.AppendTableFromCsvAsync(
-                templateAssetFileName: "Template.xlsx",
-                csvAssetFileName: "Data.csv",
-                outputFileName: "Output_Table.xlsx",
-                sheetName: "Report", // change if your template uses a different sheet
-                headerRowIdx: 0);
-
-            _status = $"Created: {_lastOutputPath}";
-        }
-        catch (Exception ex)
-        {
-            _status = "Error: " + ex.Message;
-            _lastOutputPath = null;
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
-
-    private async Task OpenOutput()
-    {
-        if (string.IsNullOrEmpty(_lastOutputPath)) return;
-
-        // Attempts to open using the platform's default app
-        await Launcher.Default.OpenAsync(new OpenFileRequest
-        {
-            File = new ReadOnlyFile(_lastOutputPath)
-        });
-    }
-
-    private async Task ShareOutput()
-    {
-        if (string.IsNullOrEmpty(_lastOutputPath)) return;
-
-        await Share.Default.RequestAsync(new ShareFileRequest
-        {
-            Title = "Generated Excel",
-            File = new ShareFile(_lastOutputPath, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-        });
-    }
-
-
-    private async Task FillPlaceholdersDOCX()
-    {
-        try
-        {
-            var request = new HttpRequestMessage(HttpMethod.Get, AutomotiveApiOptions.RecordsUrl);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", AutomotiveApiOptions.ApiKey);
-
-            var response = await Http.SendAsync(request);
-
-            var json = await response.Content.ReadAsStringAsync();
-            carInventory = JsonSerializer.Deserialize<CarObject>(json);
-        
-        }
-        catch (Exception ex)
-        {
-            //_status = "Error fetching car data: " + ex.Message;
-            //return;
-        }
-
-
-        try
-        {
-            _status = "Working...";
-            StateHasChanged();
-
-            _lastOutputPath = await wordMerge.FillDocxPlaceholdersFromCsvAsync(
-                templateAsset: "Parker_MailMerge_VEL.docx",
-                csvAsset: "ParkerExport20251113_brand_specific_warranty.csv",
-                outputFileName: "ParkerVEL20251119_Filled.docx");
-
-            _status = $"Created: {_lastOutputPath}";
-        }
-        catch (Exception ex)
-        {
-            _status = "Error: " + ex.Message;
-            _lastOutputPath = null;
-        }
-        finally { StateHasChanged(); }
-    }
-
-    private async Task BuildTable()
-    {
-        try
-        {
-            _status = "Working...";
-            StateHasChanged();
-
-            _lastOutputPath = await wordMerge.FillDocxTableFromCsvAsync(
-                templateAsset: "Parker_MailMerge_VEL.docx",
-                csvAsset: "ParkerExport20251113_brand_specific_warranty.csv",
-                outputFileName: "ParkerVEL20251121_All.docx",
-                matchTableByHeader: true);
-
-            _status = $"Created: {_lastOutputPath}";
-        }
-        catch (Exception ex)
-        {
-            _status = "Error: " + ex.Message;
-            _lastOutputPath = null;
-        }
-        finally { StateHasChanged(); }
-    }
-
-    private async Task OpenOutputDOCX()
-    {
-        if (string.IsNullOrWhiteSpace(_lastOutputPath)) return;
-        await Launcher.Default.OpenAsync(new OpenFileRequest
-        {
-            File = new ReadOnlyFile(_lastOutputPath)
-        });
-    }
-
-    private async Task ShareOutputDOCX()
-    {
-        if (string.IsNullOrWhiteSpace(_lastOutputPath)) return;
-        await Share.Default.RequestAsync(new ShareFileRequest
-        {
-            Title = "Generated DOCX (NPOI)",
-            File = new ShareFile(_lastOutputPath, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-        });
-    }
-
-    public class CarObject
-    {
-        [JsonPropertyName("records")]
-        public List<CarList> records { get; set; }
-    }
-
-    public class CarList
-    {
-
-        [JsonPropertyName("id")]
-        public int id { get; set; }
-
-        [JsonPropertyName("fields")]
-        public Car Cars { get; set; }
-    }
-
-    public class Car
-    {
-        // public string? Make { get; set; }
-        // public string? Model { get; set; }
-        // public string Year { get; set; }
-        // public string? VIN { get; set; }
-        // public string? Trim { get; set; }
-        // public string? Stock_No { get; set; }
-
-
-        [JsonPropertyName("Stock_No")]
-        public string StockNo { get; set; }
-
-        [JsonPropertyName("Make")]
-        public string Make { get; set; }
-
-        [JsonPropertyName("Model")]
-        public string Model { get; set; }
-
-        [JsonPropertyName("Trim")]
-        public string Trim { get; set; }
-
-        [JsonPropertyName("Year")]
-        public string Year { get; set; }
-
-        [JsonPropertyName("Eng")]
-        public string Engine { get; set; }
-
-        [JsonPropertyName("Trans")]
-        public string Transmission { get; set; }
-
-        [JsonPropertyName("Color")]
-        public string Color { get; set; }
-
-        [JsonPropertyName("Mileage")]
-        public string Mileage { get; set; }
-
-        [JsonPropertyName("VIN")]
-        public string VIN { get; set; }
-
-        [JsonPropertyName("Options")]
-        public string Options { get; set; }
-
-        [JsonPropertyName("Warranty_Type")]
-        public string WarrantyType { get; set; }
-
-        [JsonPropertyName("Price")]
-        public string Price { get; set; }
-
-        [JsonPropertyName("EPACity")]
-        public string EPACity { get; set; }
-
-        [JsonPropertyName("EPAHighway")]
-        public string EPAHighway { get; set; }
-
-        [JsonPropertyName("Modified")]
-        public string Modified { get; set; }
-
-        [JsonPropertyName("Internet_Specials")]
-        public string InternetSpecials { get; set; }
-
-        [JsonPropertyName("Sold")]
-        public string Sold { get; set; }
-
-        [JsonPropertyName("Locked")]
-        public string Locked { get; set; }
-
-        [JsonPropertyName("Dealer_Certified")]
-        public string DealerCertified { get; set; }
-
-        [JsonPropertyName("Manufacturer_Cert_")]
-        public string ManufacturerCertified { get; set; }
-
-        [JsonPropertyName("Rooftop")]
-        public string Rooftop { get; set; }
-
-        [JsonPropertyName("Type")]
-        public string Type { get; set; }
-
-        [JsonPropertyName("MSRP")]
-        public string MSRP { get; set; }
-
-        [JsonPropertyName("Days_in_Stock")]
-        public string DaysInStock { get; set; }
-
-        [JsonPropertyName("Photos")]
-        public string Photos { get; set; }
-
-    }
+		public bool RememberMe { get; set; }
+	}
 }
