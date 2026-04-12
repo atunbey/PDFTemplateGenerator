@@ -400,19 +400,35 @@ public sealed class LegalDocumentService(
 
     private static string GetPreferredOutputDirectory()
     {
-        var candidates = new[]
+        var candidates = new List<string?>();
+
+#if ANDROID
+        candidates.Add(Android.App.Application.Context?.GetExternalFilesDir(Android.OS.Environment.DirectoryDownloads)?.AbsolutePath);
+        candidates.Add(Android.App.Application.Context?.GetExternalFilesDir(Android.OS.Environment.DirectoryDocuments)?.AbsolutePath);
+#endif
+
+#if WINDOWS
+        var userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile))
         {
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-            FileSystem.AppDataDirectory
-        };
+            candidates.Add(Path.Combine(userProfile, "Downloads"));
+        }
+
+        candidates.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+#endif
+
+#if IOS || MACCATALYST
+        candidates.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+#endif
+
+        candidates.Add(FileSystem.AppDataDirectory);
 
         foreach (var candidate in candidates.Where(c => !string.IsNullOrWhiteSpace(c)))
         {
             try
             {
-                Directory.CreateDirectory(candidate);
-                return candidate;
+                Directory.CreateDirectory(candidate!);
+                return candidate!;
             }
             catch
             {

@@ -1,0 +1,52 @@
+.ldc-inline-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    width: 100%;
+}
+
+.ldc-filter-cell {
+    min-width: 0;
+}
+
+.ldc-actions {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.35rem;
+    padding-bottom: 1.5rem;
+}
+
+.ldc-inline-status {
+    color: #d8e1ec;
+    font-size: 0.92rem;
+    min-height: 1.25rem;
+    min-width: 18rem;
+}
+
+.ldc-submit-button {
+    min-width: 17rem;
+    margin-left: auto;
+}
+
+@media (max-width: 640.98px) {
+    .ldc-inline-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .ldc-actions {
+        justify-content: stretch;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ldc-submit-button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .ldc-inline-status {
+        min-width: 0;
+    }
+}

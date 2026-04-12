@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Razor">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0-android;net8.0-windows10.0.19041.0</TargetFrameworks>
-        <MauiVersion>8.0.100</MauiVersion>
+        <TargetFrameworks>net9.0-android;net9.0-windows10.0.19041.0</TargetFrameworks>
+        <MauiVersion>9.0.120</MauiVersion>
         <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
         <!-- <TargetFrameworks>$(TargetFrameworks);net9.0-tizen</TargetFrameworks> -->
 
@@ -23,20 +23,20 @@
         <Nullable>enable</Nullable>
 
         <!-- Display name -->
-        <ApplicationTitle>PDFTemplateGenerator</ApplicationTitle>
+        <ApplicationTitle>Legal Document Creator</ApplicationTitle>
 
         <!-- App Identifier -->
         <ApplicationId>com.atunbey.pdftemplategenerator</ApplicationId>
 
         <!-- Versions -->
-        <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-        <ApplicationVersion>1</ApplicationVersion>
+        <ApplicationDisplayVersion>1.3</ApplicationDisplayVersion>
+        <ApplicationVersion>3</ApplicationVersion>
 
         <!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
 
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+        <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">24.0</SupportedOSPlatformVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
         <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
@@ -50,13 +50,20 @@
         <AndroidSigningKeyPass Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">xander#01CO</AndroidSigningKeyPass>
         <AndroidSigningStorePass Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">xander#01CO</AndroidSigningStorePass>
 
+        <GenerateTestArtifacts>False</GenerateTestArtifacts>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+        <WindowsPackageType>None</WindowsPackageType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)' == 'Release' AND $([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
         <GenerateAppInstallerFile>True</GenerateAppInstallerFile>
         <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
         <PackageCertificateThumbprint>1389365C66EB51B4EB526692504F9F820CCFEC1C</PackageCertificateThumbprint>
         <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
         <AppxAutoIncrementPackageRevision>True</AppxAutoIncrementPackageRevision>
         <AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
-        <GenerateTestArtifacts>False</GenerateTestArtifacts>
         <AppInstallerUri>https://tools.kushkurriculum.org/nextcloud/s/PazWpnqWKSzwzxL</AppInstallerUri>
         <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
     </PropertyGroup>

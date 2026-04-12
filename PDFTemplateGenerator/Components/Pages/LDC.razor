@@ -6,14 +6,31 @@
 
 <h3>Legal Document Creator</h3>
 
-<div class="mb-3">
-    <label for="clientSearch" class="form-label">Search client</label>
-    <InputText
-        id="clientSearch"
-        class="form-control"
-        @bind-Value="_searchText"
-        @bind-Value:event="oninput"
-        placeholder="Type last, first, or middle name" />
+<div class="ldc-inline-filters">
+    <div class="mb-3 ldc-filter-cell">
+        <label for="clientSearch" class="form-label">Search client</label>
+        <input
+            id="clientSearch"
+            class="form-control"
+            value="@_searchText"
+            @oninput="OnSearchInput"
+            placeholder="Type last, first, or middle name" />
+    </div>
+
+    <div class="mb-3 ldc-filter-cell">
+        <label for="templateSelect" class="form-label">Search template</label>
+        <select id="templateSelect" class="form-select" @bind="_selectedTemplate">
+            <option value="">-- Select a template --</option>
+            @foreach (var template in _availableTemplates)
+            {
+                <option value="@template">@template</option>
+            }
+        </select>
+        @if (!_availableTemplates.Any())
+        {
+            <small class="text-danger">No .docx templates found from configured source.</small>
+        }
+    </div>
 </div>
 
 <div class="mb-3">
@@ -28,21 +45,6 @@
     <small class="text-muted">@FilteredClients.Count() result(s)</small>
 </div>
 
-<div class="mb-3">
-    <label for="templateSelect" class="form-label">Select template</label>
-    <select id="templateSelect" class="form-select" @bind="_selectedTemplate">
-        <option value="">-- Select a template --</option>
-        @foreach (var template in _availableTemplates)
-        {
-            <option value="@template">@template</option>
-        }
-    </select>
-    @if (!_availableTemplates.Any())
-    {
-        <small class="text-danger">No .docx templates found from configured source.</small>
-    }
-</div>
-
 @if (!string.IsNullOrWhiteSpace(_lastOutputPath))
 {
     <div class="mb-3">
@@ -52,24 +54,16 @@
     </div>
 }
 
-<div class="buttons">
+<div class="ldc-actions">
+    <span class="ldc-inline-status">@_status</span>
+
     <button
-        class="btn btn-primary bottom-right-fab"
+        class="btn ldc-submit-button"
         disabled="@(_isLoadingClients || _isGenerating || string.IsNullOrWhiteSpace(_selectedClientRecordId) || string.IsNullOrEmpty(_selectedTemplate))"
         @onclick="GenerateLegalDocuments">
         Merge Template With Bene
     </button>
 </div>
-
-@if (_isLoadingClients)
-{
-    <p>Loading client list from Grist...</p>
-}
-
-@if (!string.IsNullOrWhiteSpace(_status))
-{
-    <p>@_status</p>
-}
 
 @if (!string.IsNullOrWhiteSpace(_lastOutputPath))
 {
@@ -91,8 +85,38 @@
     private IEnumerable<BeneficiaryClient> FilteredClients =>
         string.IsNullOrWhiteSpace(_searchText)
             ? _clients
-            : _clients.Where(c =>
-                c.DisplayName.Contains(_searchText, StringComparison.OrdinalIgnoreCase));
+            : _clients.Where(MatchesSearch).ToList();
+
+    private void OnSearchInput(ChangeEventArgs args)
+    {
+        _searchText = args.Value?.ToString() ?? string.Empty;
+    }
+
+    private bool MatchesSearch(BeneficiaryClient client)
+    {
+        var search = _searchText.Trim();
+        if (string.IsNullOrWhiteSpace(search))
+        {
+            return true;
+        }
+
+        var candidates = new[]
+        {
+            client.DisplayName,
+            client.RecordId,
+            client.LastName,
+            client.FirstName,
+            client.MiddleName,
+            $"{client.FirstName} {client.MiddleName} {client.LastName}",
+            $"{client.FirstName} {client.LastName}",
+            $"{client.LastName} {client.FirstName}",
+            $"{client.LastName} {client.FirstName} {client.MiddleName}"
+        };
+
+        return candidates.Any(value =>
+            !string.IsNullOrWhiteSpace(value) &&
+            value.Contains(search, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -165,13 +189,13 @@
 
         try
         {
-            await Launcher.Default.OpenAsync(new OpenFileRequest(
+            var opened = await Launcher.Default.OpenAsync(new OpenFileRequest(
                 "Generated Document",
                 new ReadOnlyFile(_lastOutputPath)));
-        }
-        catch (FeatureNotSupportedException)
-        {
-            _status = "Opening files is not supported on this device.";
+
+            _status = opened
+                ? "Opened generated document."
+                : "No app is available to open this document.";
         }
         catch (Exception ex)
         {
@@ -182,7 +206,7 @@
                     Title = "Share generated document",
                     File = new ShareFile(_lastOutputPath)
                 });
-                _status = "No app could open the document directly. Shared instead.";
+                _status = "Could not open directly, so share was offered instead.";
             }
             catch
             {

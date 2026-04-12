@@ -1,7 +1,7 @@
 {
   "profiles": {
     "Windows Machine": {
-      "commandName": "Project",
+      "commandName": "MsixPackage",
       "nativeDebugging": false,
       "environmentVariables": {
         "LEGALDOC_CERT_TEMPLATE_PATH": "C:\\Users\\atunbey\\OneDrive - Afuraka Technology Services\\Documents\\DocumentAutomation"
