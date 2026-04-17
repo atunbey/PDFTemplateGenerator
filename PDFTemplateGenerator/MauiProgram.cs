@@ -25,6 +25,10 @@ namespace PDFTemplateGenerator
             {
                 BeneficiaryRecordsUrl = Environment.GetEnvironmentVariable("GRIST_BENEFICIARY_RECORDS_URL")
                     ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Beneficiary/records",
+                CounselRecordsUrl = Environment.GetEnvironmentVariable("GRIST_COUNSEL_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Counsel/records",
+                AssociationsRecordsUrl = Environment.GetEnvironmentVariable("GRIST_ASSOCIATIONS_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Associations/records",
                 ApiKey = Environment.GetEnvironmentVariable("GRIST_API_KEY")
                     ?? "863a5652184fa2a988f217019a3ebf751f7d3fc7"
             });
@@ -50,6 +54,7 @@ namespace PDFTemplateGenerator
                     StringComparison.OrdinalIgnoreCase)
             });
             builder.Services.AddSingleton<IGristClientService, GristClientService>();
+            builder.Services.AddSingleton<ICounselSessionService, CounselSessionService>();
             builder.Services.AddSingleton<ILegalDocumentService, LegalDocumentService>();
 
 #if DEBUG

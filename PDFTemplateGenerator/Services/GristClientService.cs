@@ -5,54 +5,134 @@ namespace PDFTemplateGenerator.Services;
 
 public sealed class GristClientService(HttpClient httpClient, GristApiOptions options) : IGristClientService
 {
-    public async Task<IReadOnlyList<BeneficiaryClient>> GetBeneficiariesAsync(CancellationToken cancellationToken = default)
+    public async Task<CounselUser?> AuthenticateCounselAsync(string userName, string password, CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(options.BeneficiaryRecordsUrl))
+        if (string.IsNullOrWhiteSpace(userName) || string.IsNullOrWhiteSpace(password))
         {
-            throw new InvalidOperationException("Grist beneficiary records URL is not configured.");
+            return null;
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Get, options.BeneficiaryRecordsUrl);
-
-        if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        var records = await GetRecordsAsync(options.CounselRecordsUrl, cancellationToken);
+        foreach (var record in records)
         {
-            request.Headers.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.ApiKey);
+            var recordUserName = GetFieldAsString(record.Fields, "userName", "username", "email", "login");
+            var recordPassword = GetFieldAsString(record.Fields, "passWord", "password", "pass");
+            var isActive = GetFieldAsBoolean(record.Fields, "isactive", "isActive", "active");
+
+            if (!isActive)
+                continue;
+
+            if (!string.Equals(recordUserName, userName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            if (!string.Equals(recordPassword, password, StringComparison.Ordinal))
+                continue;
+
+            var rawClientId = GetFieldAsString(record.Fields, "clientId", "clientid", "counsel", "counselClientId").Trim();
+            var resolvedClientId = string.IsNullOrWhiteSpace(rawClientId) ? record.Id : rawClientId;
+            var profile = await GetBeneficiaryProfileAsync(resolvedClientId, cancellationToken);
+
+            return new CounselUser
+            {
+                RecordId = record.Id,
+                UserName = recordUserName,
+                ClientId = resolvedClientId,
+                IsActive = true,
+                FirstName = profile.FirstName,
+                MiddleName = profile.MiddleName,
+                LastName = profile.LastName,
+                ZipCode = profile.ZipCode
+            };
         }
 
-        using var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        return null;
+    }
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
+    private async Task<(string FirstName, string MiddleName, string LastName, string ZipCode)> GetBeneficiaryProfileAsync(
+        string clientId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(clientId))
+            return (string.Empty, string.Empty, string.Empty, string.Empty);
 
-        if (!doc.RootElement.TryGetProperty("records", out var records) || records.ValueKind != JsonValueKind.Array)
+        try
         {
-            return Array.Empty<BeneficiaryClient>();
+            var beneficiary = await GetBeneficiaryByIdAsync(clientId, cancellationToken);
+            if (beneficiary is null)
+                return (string.Empty, string.Empty, string.Empty, string.Empty);
+
+            beneficiary.Fields.TryGetValue("zip", out var zip1);
+            beneficiary.Fields.TryGetValue("zipCode", out var zip2);
+            beneficiary.Fields.TryGetValue("postalCode", out var zip3);
+            var zip = zip1 ?? zip2 ?? zip3 ?? string.Empty;
+
+            return (beneficiary.FirstName, beneficiary.MiddleName, beneficiary.LastName, zip);
+        }
+        catch
+        {
+            return (string.Empty, string.Empty, string.Empty, string.Empty);
+        }
+    }
+
+    public async Task<IReadOnlyList<string>> GetAssociatedBeneficiaryIdsAsync(string counselClientId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(counselClientId))
+        {
+            return Array.Empty<string>();
         }
 
-        var clients = new List<BeneficiaryClient>();
+        var records = await GetRecordsAsync(options.AssociationsRecordsUrl, cancellationToken);
+        var clientIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var record in records.EnumerateArray())
+        foreach (var record in records)
         {
-            var recordId = record.TryGetProperty("id", out var idElement)
-                ? idElement.ToString()
-                : string.Empty;
-
-            if (!record.TryGetProperty("fields", out var fields) || fields.ValueKind != JsonValueKind.Object)
+            var associationCounselId = GetFieldAsString(record.Fields, "counsel", "counselId", "counselClientId").Trim();
+            if (!string.Equals(associationCounselId, counselClientId, StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var field in fields.EnumerateObject())
+            var clientId = GetFieldAsString(record.Fields, "clientId", "clientid", "client", "beneficiary", "beneficiaryId").Trim();
+            if (string.IsNullOrWhiteSpace(clientId))
             {
-                dict[field.Name] = field.Value.ValueKind switch
-                {
-                    JsonValueKind.Null => string.Empty,
-                    JsonValueKind.String => field.Value.GetString() ?? string.Empty,
-                    _ => field.Value.ToString()
-                };
+                continue;
+            }
+
+            clientIds.Add(clientId);
+        }
+
+        return clientIds.OrderBy(id => id, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    public async Task<IReadOnlyList<BeneficiaryClient>> GetBeneficiariesForCounselAsync(string counselClientId, CancellationToken cancellationToken = default)
+    {
+        var clientIds = await GetAssociatedBeneficiaryIdsAsync(counselClientId, cancellationToken);
+        if (clientIds.Count == 0)
+        {
+            return Array.Empty<BeneficiaryClient>();
+        }
+
+        var allowed = new HashSet<string>(clientIds, StringComparer.OrdinalIgnoreCase);
+        var allClients = await GetBeneficiariesAsync(cancellationToken);
+
+        return allClients
+            .Where(client => allowed.Contains(client.RecordId))
+            .OrderBy(c => c.LastName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(c => c.FirstName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(c => c.MiddleName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<BeneficiaryClient>> GetBeneficiariesAsync(CancellationToken cancellationToken = default)
+    {
+        var records = await GetRecordsAsync(options.BeneficiaryRecordsUrl, cancellationToken);
+        var clients = new List<BeneficiaryClient>();
+
+        foreach (var record in records)
+        {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var field in record.Fields)
+            {
+                dict[field.Key] = ConvertJsonToString(field.Value);
             }
 
             dict.TryGetValue("lName", out var lName);
@@ -61,7 +141,7 @@ public sealed class GristClientService(HttpClient httpClient, GristApiOptions op
 
             clients.Add(new BeneficiaryClient
             {
-                RecordId = recordId,
+                RecordId = record.Id,
                 LastName = lName ?? string.Empty,
                 FirstName = fName ?? string.Empty,
                 MiddleName = mName ?? string.Empty,
@@ -82,4 +162,157 @@ public sealed class GristClientService(HttpClient httpClient, GristApiOptions op
         return clients.FirstOrDefault(c =>
             string.Equals(c.RecordId, clientId, StringComparison.OrdinalIgnoreCase));
     }
+
+    private async Task<IReadOnlyList<GristRecord>> GetRecordsAsync(string url, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new InvalidOperationException("A required Grist records URL is not configured.");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+
+        if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        {
+            request.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", options.ApiKey);
+        }
+
+        using var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var doc = JsonDocument.Parse(json);
+
+        if (!doc.RootElement.TryGetProperty("records", out var records) || records.ValueKind != JsonValueKind.Array)
+        {
+            return Array.Empty<GristRecord>();
+        }
+
+        var result = new List<GristRecord>();
+        foreach (var record in records.EnumerateArray())
+        {
+            var recordId = record.TryGetProperty("id", out var idElement)
+                ? idElement.ToString()
+                : string.Empty;
+
+            if (!record.TryGetProperty("fields", out var fields) || fields.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var dict = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+            foreach (var field in fields.EnumerateObject())
+            {
+                dict[field.Name] = field.Value.Clone();
+            }
+
+            result.Add(new GristRecord(recordId, dict));
+        }
+
+        return result;
+    }
+
+    private static string GetFieldAsString(IReadOnlyDictionary<string, JsonElement> fields, params string[] aliases)
+    {
+        foreach (var alias in aliases)
+        {
+            if (TryFindField(fields, alias, out var value))
+            {
+                return ConvertJsonToString(value);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static bool GetFieldAsBoolean(IReadOnlyDictionary<string, JsonElement> fields, params string[] aliases)
+    {
+        foreach (var alias in aliases)
+        {
+            if (!TryFindField(fields, alias, out var value))
+            {
+                continue;
+            }
+
+            if (value.ValueKind == JsonValueKind.True)
+            {
+                return true;
+            }
+
+            if (value.ValueKind == JsonValueKind.False || value.ValueKind == JsonValueKind.Null)
+            {
+                return false;
+            }
+
+            var stringValue = ConvertJsonToString(value).Trim();
+            if (string.IsNullOrWhiteSpace(stringValue))
+            {
+                return false;
+            }
+
+            if (bool.TryParse(stringValue, out var boolValue))
+            {
+                return boolValue;
+            }
+
+            if (int.TryParse(stringValue, out var intValue))
+            {
+                return intValue != 0;
+            }
+
+            if (string.Equals(stringValue, "yes", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stringValue, "y", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (string.Equals(stringValue, "no", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stringValue, "n", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryFindField(IReadOnlyDictionary<string, JsonElement> fields, string alias, out JsonElement value)
+    {
+        if (fields.TryGetValue(alias, out value))
+        {
+            return true;
+        }
+
+        var normalizedAlias = NormalizeKey(alias);
+        foreach (var item in fields)
+        {
+            if (string.Equals(NormalizeKey(item.Key), normalizedAlias, StringComparison.Ordinal))
+            {
+                value = item.Value;
+                return true;
+            }
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string NormalizeKey(string key)
+    {
+        var chars = key.Where(char.IsLetterOrDigit).ToArray();
+        return new string(chars).ToLowerInvariant();
+    }
+
+    private static string ConvertJsonToString(JsonElement value)
+    {
+        return value.ValueKind switch
+        {
+            JsonValueKind.Null => string.Empty,
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            _ => value.ToString()
+        };
+    }
+
+    private sealed record GristRecord(string Id, IReadOnlyDictionary<string, JsonElement> Fields);
 }

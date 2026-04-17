@@ -51,13 +51,23 @@ h1 {
 }
 
 .login-form {
-    display: grid;
-    gap: 0.95rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
 .login-field {
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 0.35rem;
+}
+
+.login-field + .login-field {
+    margin-top: 0.15rem;
+}
+
+.login-form ::deep .form-control {
+    margin: 0;
 }
 
 .login-field ::deep .validation-message {
@@ -71,6 +81,7 @@ h1 {
     align-items: center;
     gap: 0.75rem;
     flex-wrap: wrap;
+    margin-top: 0.4rem;
 }
 
 .remember-toggle {
@@ -97,6 +108,7 @@ h1 {
 .login-submit {
     width: 100%;
     min-height: 2.8rem;
+    margin-top: 0.35rem;
 }
 
 .login-status {

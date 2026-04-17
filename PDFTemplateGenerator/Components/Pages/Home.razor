@@ -1,42 +1,63 @@
 @page "/"
+@inject PDFTemplateGenerator.Services.IGristClientService GristClientService
+@inject PDFTemplateGenerator.Services.ICounselSessionService CounselSession
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <section class="login-shell" aria-labelledby="loginTitle">
 	<div class="login-panel">
 		<p class="login-eyebrow">Living Equity Private Ministry</p>
-		<h1 id="loginTitle">Welcome Back</h1>
-		<p class="login-subtitle">Sign in to continue to Constitutional Document Creator.</p>
 
-		<EditForm Model="_login" OnValidSubmit="HandleLoginAsync" class="login-form">
-			<DataAnnotationsValidator />
-
-			<div class="login-field">
-				<label for="emailInput" class="form-label">Email</label>
-				<InputText id="emailInput" class="form-control" @bind-Value="_login.Email" autocomplete="username" />
-				<ValidationMessage For="() => _login.Email" />
-			</div>
-
-			<div class="login-field">
-				<label for="passwordInput" class="form-label">Password</label>
-				<InputText id="passwordInput" class="form-control" type="password" @bind-Value="_login.Password" autocomplete="current-password" />
-				<ValidationMessage For="() => _login.Password" />
-			</div>
-
-			<div class="login-meta-row">
-				<label class="remember-toggle">
-					<InputCheckbox @bind-Value="_login.RememberMe" />
-					<span>Remember me</span>
-				</label>
-				<button type="button" class="btn btn-link forgot-link" @onclick="ShowResetPlaceholder">Forgot password?</button>
-			</div>
-
-			<button type="submit" class="btn login-submit" disabled="@_isSubmitting">
-				@(_isSubmitting ? "Signing In..." : "Sign In")
-			</button>
-		</EditForm>
-
-		@if (!string.IsNullOrWhiteSpace(_statusMessage))
+		@if (CounselSession.IsAuthenticated)
 		{
-			<p class="login-status">@_statusMessage</p>
+			var c = CounselSession.CurrentCounsel!;
+			<h1 id="loginTitle">Welcome, @c.FirstName</h1>
+			<div class="counsel-profile">
+				<dl class="counsel-profile-fields">
+					<dt>First Name</dt><dd>@(string.IsNullOrWhiteSpace(c.FirstName) ? "—" : c.FirstName)</dd>
+					<dt>Middle Name</dt><dd>@(string.IsNullOrWhiteSpace(c.MiddleName) ? "—" : c.MiddleName)</dd>
+					<dt>Last Name</dt><dd>@(string.IsNullOrWhiteSpace(c.LastName) ? "—" : c.LastName)</dd>
+					<dt>Zip Code</dt><dd>@(string.IsNullOrWhiteSpace(c.ZipCode) ? "—" : c.ZipCode)</dd>
+				</dl>
+			</div>
+		}
+		else
+		{
+			<h1 id="loginTitle">Welcome Back</h1>
+			<p class="login-subtitle">Sign in to continue to Constitutional Document Creator.</p>
+
+			<EditForm Model="_login" OnValidSubmit="HandleLoginAsync" class="login-form">
+				<DataAnnotationsValidator />
+
+				<div class="login-field">
+					<label for="userNameInput" class="form-label">User Name</label>
+					<InputText id="userNameInput" class="form-control" @bind-Value="_login.UserName" autocomplete="username" />
+					<ValidationMessage For="() => _login.UserName" />
+				</div>
+
+				<div class="login-field">
+					<label for="passwordInput" class="form-label">Password</label>
+					<InputText id="passwordInput" class="form-control" type="password" @bind-Value="_login.Password" autocomplete="current-password" />
+					<ValidationMessage For="() => _login.Password" />
+				</div>
+
+				<div class="login-meta-row">
+					<label class="remember-toggle">
+						<InputCheckbox @bind-Value="_login.RememberMe" />
+						<span>Remember me</span>
+					</label>
+					<button type="button" class="btn btn-link forgot-link" @onclick="ShowResetPlaceholder">Forgot password?</button>
+				</div>
+
+				<button type="submit" class="btn login-submit" disabled="@_isSubmitting">
+					@(_isSubmitting ? "Signing In..." : "Sign In")
+				</button>
+			</EditForm>
+
+			@if (!string.IsNullOrWhiteSpace(_statusMessage))
+			{
+				<p class="login-status">@_statusMessage</p>
+			}
 		}
 	</div>
 </section>
@@ -46,13 +67,45 @@
 	private bool _isSubmitting;
 	private string? _statusMessage;
 
+	protected override void OnInitialized()
+	{
+		CounselSession.OnChange += OnSessionChanged;
+	}
+
+	private void OnSessionChanged()
+	{
+		InvokeAsync(StateHasChanged);
+	}
+
+	public void Dispose()
+	{
+		CounselSession.OnChange -= OnSessionChanged;
+	}
 	private async Task HandleLoginAsync()
 	{
 		_isSubmitting = true;
 		_statusMessage = null;
-		await Task.Delay(450);
-		_isSubmitting = false;
-		_statusMessage = "Login UI is ready, but authentication is not wired yet.";
+
+		try
+		{
+			var counsel = await GristClientService.AuthenticateCounselAsync(_login.UserName, _login.Password);
+			if (counsel is null)
+			{
+				_statusMessage = "Invalid credentials or inactive counsel account.";
+				return;
+			}
+
+			var associatedClientIds = await GristClientService.GetAssociatedBeneficiaryIdsAsync(counsel.ClientId);
+			CounselSession.SignIn(counsel, associatedClientIds);
+		}
+		catch (Exception ex)
+		{
+			_statusMessage = "Unable to sign in: " + ex.Message;
+		}
+		finally
+		{
+			_isSubmitting = false;
+		}
 	}
 
 	private void ShowResetPlaceholder()
@@ -63,8 +116,7 @@
 	private sealed class LoginFormModel
 	{
 		[System.ComponentModel.DataAnnotations.Required]
-		[System.ComponentModel.DataAnnotations.EmailAddress]
-		public string Email { get; set; } = string.Empty;
+		public string UserName { get; set; } = string.Empty;
 
 		[System.ComponentModel.DataAnnotations.Required]
 		[System.ComponentModel.DataAnnotations.MinLength(6)]

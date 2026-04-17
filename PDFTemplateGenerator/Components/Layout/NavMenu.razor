@@ -1,4 +1,8 @@
-﻿<div class="top-row nav-top-row ps-3 navbar navbar-dark">
+﻿@inject PDFTemplateGenerator.Services.ICounselSessionService CounselSession
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="top-row nav-top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand nav-brand" href="" aria-label="Living Equity Home">
             <img src="/images/livingequityprivateministry.jpg" alt="Living Equity logo" class="navbar-brand-logo" />
@@ -15,10 +19,41 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="LDC">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Constitutional Document Creator
-            </NavLink>
-        </div>
+        @if (CounselSession.IsAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="ldc">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Legal Document Creator
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <button type="button" class="nav-link btn btn-link" @onclick="SignOut">
+                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Sign Out
+                </button>
+            </div>
+        }
     </nav>
 </div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        CounselSession.OnChange += OnSessionChanged;
+    }
+
+    private void OnSessionChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SignOut()
+    {
+        CounselSession.SignOut();
+        Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        CounselSession.OnChange -= OnSessionChanged;
+    }
+}

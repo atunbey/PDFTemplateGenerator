@@ -3,6 +3,8 @@
 @using PDFTemplateGenerator.Models
 @inject PDFTemplateGenerator.Services.IGristClientService GristClientService
 @inject PDFTemplateGenerator.Services.ILegalDocumentService LegalDocumentService
+@inject PDFTemplateGenerator.Services.ICounselSessionService CounselSession
+@inject NavigationManager Navigation
 
 <h3>Legal Document Creator</h3>
 
@@ -120,12 +122,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!CounselSession.IsAuthenticated || string.IsNullOrWhiteSpace(CounselSession.CurrentCounsel?.ClientId))
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        var counselClientId = CounselSession.CurrentCounsel.ClientId;
         _isLoadingClients = true;
-        _status = "Loading clients...";
+        _status = "Loading associated clients...";
 
         try
         {
-            var result = await GristClientService.GetBeneficiariesAsync();
+            var result = await GristClientService.GetBeneficiariesForCounselAsync(counselClientId);
             _clients = result.ToList();
             _status = $"Loaded {_clients.Count} client(s).";
         }
