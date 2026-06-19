@@ -40,18 +40,21 @@ public sealed class LegalDocumentService(
         var client = await gristClientService.GetBeneficiaryByIdAsync(clientId, cancellationToken)
             ?? throw new InvalidOperationException($"Client with id {clientId} was not found in Grist.");
 
+        // Document-specific relationship map is resolved in GristClientService via Moor.Document.dataRequired JSON.
+        var mergeData = await gristClientService.GetMergedFieldsForDocumentAsync(clientId, templateFileName, cancellationToken);
+
         var templateBytes = await ResolveTemplateBytesAsync(templateFileName, cancellationToken);
         using var ms = new MemoryStream(templateBytes);
         using var doc = new XWPFDocument(ms);
 
         foreach (var headerParagraph in doc.HeaderList.SelectMany(h => h.Paragraphs))
         {
-            ReplaceInParagraph(headerParagraph, client.Fields);
+            ReplaceInParagraph(headerParagraph, mergeData);
         }
 
         foreach (var paragraph in doc.Paragraphs)
         {
-            ReplaceInParagraph(paragraph, client.Fields);
+            ReplaceInParagraph(paragraph, mergeData);
         }
 
         foreach (var table in doc.Tables)
@@ -62,7 +65,7 @@ public sealed class LegalDocumentService(
                 {
                     foreach (var paragraph in cell.Paragraphs)
                     {
-                        ReplaceInParagraph(paragraph, client.Fields);
+                        ReplaceInParagraph(paragraph, mergeData);
                     }
                 }
             }

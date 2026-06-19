@@ -29,8 +29,18 @@ namespace PDFTemplateGenerator
                     ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Counsel/records",
                 AssociationsRecordsUrl = Environment.GetEnvironmentVariable("GRIST_ASSOCIATIONS_RECORDS_URL")
                     ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Associations/records",
+                MoorDocumentRecordsUrl = Environment.GetEnvironmentVariable("GRIST_MOOR_DOCUMENT_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Document/records",
                 ApiKey = Environment.GetEnvironmentVariable("GRIST_API_KEY")
-                    ?? "863a5652184fa2a988f217019a3ebf751f7d3fc7"
+                    ?? "863a5652184fa2a988f217019a3ebf751f7d3fc7",
+
+                // New relational tables — create these in Grist and set the env vars, or replace the empty defaults below.
+                TrustorRecordsUrl = Environment.GetEnvironmentVariable("GRIST_TRUSTOR_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Trustor/records",
+                TrusteeRecordsUrl = Environment.GetEnvironmentVariable("GRIST_TRUSTEE_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/Moor_Trustee/records",
+                DocumentExecutionRecordsUrl = Environment.GetEnvironmentVariable("GRIST_DOCUMENT_EXECUTION_RECORDS_URL")
+                    ?? "https://onlinedata.kushkurriculum.org/api/docs/193hm5A4YK9FczhVGXxtgo/tables/DocumentExecution/records",
             });
             builder.Services.AddSingleton(new LegalDocumentOptions
             {

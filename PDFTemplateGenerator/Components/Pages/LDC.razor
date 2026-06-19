@@ -180,7 +180,15 @@
         }
         catch (Exception ex)
         {
-            _status = "Failed to generate document: " + ex.Message;
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"[{ex.GetType().Name}] {ex.Message}");
+            var inner = ex.InnerException;
+            while (inner is not null)
+            {
+                sb.Append($" → [{inner.GetType().Name}] {inner.Message}");
+                inner = inner.InnerException;
+            }
+            _status = "Failed to generate document: " + sb.ToString();
         }
         finally
         {

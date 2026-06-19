@@ -1,0 +1,1 @@
+{"actions": [["ModifyColumn", "Moor_Trustee", "trusteeFullName", {"isFormula": true, "formula": "client = Beneficiary.lookupOne(id=rec.clientId); \" \".join(filter(None, [client.fName, client.mName, client.lName])) if client else \"\""}]]}
